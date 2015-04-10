@@ -52,4 +52,4 @@ max: 6.
 ## To be continued
 The code is very simple and was more of an exercise than a serious project. Many things need to be done. The major
 feature I would like to implement is to make it general with respect to the parameters defining the sequence to be
-guessed, such as its lenght, the digits that it contains, and whether or not repetitions are allowed.
+guessed, such as its length, the digits that it contains, and whether or not repetitions are allowed.
