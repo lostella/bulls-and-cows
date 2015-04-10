@@ -1,18 +1,21 @@
 module Main where
 
 import System.Random
-import Data.Char
 import System.IO
+import System.Environment
+import Data.Char
 
--- define the Guess data type (this should of a generic lenght, probably using lists)
-data Guess = Guess Int Int Int Int | Empty
+-- define the Guess data type
+data Guess = Guess [Int] | Empty
 -- the Guess data type is showable
 instance Show Guess where
-  show (Guess w x y z) = (show w)++","++(show x)++","++(show y)++","++(show z)
+  show (Guess (x:xs)) = (show x)++","++(show (Guess xs))
+  show (Guess []) = ""
   show Empty = "error"
 -- the Guess data type is comparable
 instance Eq Guess where
-  (Guess x1 x2 x3 x4) == (Guess y1 y2 y3 y4) = (x1,x2,x3,x4) == (y1,y2,y3,y4)
+  (Guess (x:xs)) == (Guess (y:ys)) = (x == y) && ((Guess xs) == (Guess ys))
+  (Guess []) == (Guess []) = True
   Empty == Empty = True
   _ == _ = False
 
@@ -23,24 +26,25 @@ instance Show Answer where
 instance Eq Answer where
   (Answer s1 b1) == (Answer s2 b2) = s1 == s2 && b1 == b2
 
-list :: Guess -> [Int]
-list (Guess w x y z) = w:x:y:z:[]
-list Empty = []
+combosnorep :: Int -> Int -> [Int] -> [[Int]]
+combosnorep 0 _ _ = [[]]
+combosnorep l d rs = [(x:xs) | x <- [0..(d-1)], (elem x rs) == False, xs <- (combosnorep (l-1) d (x:rs))]
 
--- the list of possible guesses is made of objects of Guess type containing
--- no repetitions (this also must be made generic)
-combos :: [Guess]
-combos = [Guess w x y z | w <- [0..9], x <- [0..9], y <- [0..9], z <- [0..9],
-  w /= x, w /= y, w /= z, x /= y, x /= z, y /= z]
+combos :: Int -> Int -> Bool -> [[Int]]
+combos 0 _ True = [[]]
+combos l d True = [(x:xs) | x <- [0..(d-1)], xs <- (combos (l-1) d True)]
+combos l d False = combosnorep l d []
+
+guesses :: Int -> Int -> Bool -> [Guess]
+guesses l d r = [Guess x | x <- (combos l d r)]
 
 booltoint :: Bool -> Int
 booltoint True = 1
 booltoint _ = 0
 
 -- the list of possible replies
-answers :: [Answer]
-answers = [Answer 0 1, Answer 0 2, Answer 1 1, Answer 1 0, Answer 0 0, Answer 2 0, Answer 0 3, Answer 1 2,
-  Answer 2 1, Answer 3 0, Answer 0 4, Answer 1 3, Answer 2 2]
+answers :: Int -> [Answer]
+answers l = [Answer b c | b <- [0..l], c <- [0..l], b+c <= l]
 
 -- computes the index of the first occurence of the first argument in the list
 -- provided as second argument
@@ -49,6 +53,13 @@ idx y (x:xs)
   | x == y = 0
   | x /= y = 1 + (idx y xs)
 idx _ [] = 0
+
+-- removes the first instance of an element from a list (if there is one)
+rmlist :: Eq a => a -> [a] -> [a]
+rmlist x (y:ys)
+  | x == y = ys
+  | x /= y = (y:(rmlist x ys))
+rmlist x [] = []
 
 -- counts on how many positions two lists contain the same integer
 cslist :: [Int] -> [Int] -> Int
@@ -59,17 +70,22 @@ cslist [] [] = 0
 
 -- self explanatory
 countsquares :: Guess -> Guess -> Int
-countsquares x y = cslist (list x) (list y)
+countsquares (Guess xs) (Guess ys) = cslist xs ys
 
 -- counts how many elements in each of the two lists appear also in the other
 -- (but in a different position)
-cblist :: [Int] -> [Int] -> Int
-cblist (x:xs) (y:ys) = (booltoint (elem x ys)) + (booltoint (elem y xs)) + (cblist xs ys) 
-cblist [] [] = 0
+cblist :: [Int] -> [Int] -> [Int] -> [Int] -> Int
+cblist (x:xs) (y:ys) rxs rys
+  | x == y = cblist xs ys rxs rys
+  | x /= y && (elem x rys) && (elem y rxs) = 2 + (cblist xs ys (rmlist y rxs) (rmlist x rys))
+  | x /= y && (elem y rxs) = 1 + (cblist xs ys (x:(rmlist y rxs)) rys)
+  | x /= y && (elem x rys) = 1 + (cblist xs ys rxs (y:(rmlist x rys)))
+  | x /= y = (cblist xs ys (x:rxs) (y:rys))
+cblist [] [] _ _ = 0
 
 -- self explanatory
 countballs :: Guess -> Guess -> Int
-countballs x y = cblist (list x) (list y)
+countballs (Guess xs) (Guess ys) = cblist xs ys [] []
 
 -- self explanatory
 feedback :: Guess -> Guess -> Answer
@@ -79,49 +95,50 @@ feedback t g = Answer (countsquares t g) (countballs t g)
 test :: Guess -> Answer -> Guess -> Bool
 test g a t = (feedback g t) == a && g /= t
 
-minmax :: [Guess] -> Guess
-minmax cs = mini cs cs (length cs) Empty
+minmax :: [Guess] -> [Answer] -> Guess
+minmax gs as = mini gs gs as (length gs) Empty
 
-mini :: [Guess] -> [Guess] -> Int -> Guess -> Guess
-mini cs (x:xs) mv mc =
+mini :: [Guess] -> [Guess] -> [Answer] -> Int -> Guess -> Guess
+mini gs (x:xs) as mv mg =
   if v < mv
-    then mini cs xs v x
-    else mini cs xs mv mc
-  where v = maxi cs x answers mv
-mini _ [] _ mc = mc
+    then mini gs xs as v x
+    else mini gs xs as mv mg
+  where v = maxi gs x as mv
+mini _ [] _ _ mg = mg
 
 maxi :: [Guess] -> Guess -> [Answer] -> Int -> Int
-maxi cs c (a:as) t =
+maxi gs g (a:as) t =
   if len >= t
     then t
-    else max len (maxi cs c as t)
-  where len = length (filter (test c a) cs)
+    else max len (maxi gs g as t)
+  where len = length (filter (test g a) gs)
 maxi _ _ [] _ = 0
 
-choose :: Int -> [Guess] -> IO Guess
-choose k cs =
+choose :: Int -> [Guess] -> [Answer] -> IO Guess
+choose k gs as =
   if k < 1
     then do
-      i <- randomRIO (0, (length cs)-1)
-      return (cs !! i)
+      i <- randomRIO (0, (length gs)-1)
+      return (gs !! i)
     else do
-      return (minmax cs)
+      return (minmax gs as)
 
-gameLoop :: Int -> [Guess] -> IO ()
-gameLoop k set =
+gameLoop :: Int -> Int -> [Guess] -> [Answer] -> IO ()
+gameLoop k l gs as =
   do
-    g <- choose k set
+    g <- choose k gs as
     hPrint stdout g
     hFlush stdout
     s <- hGetLine stdin
     let a = Answer ((digitToInt . head) s) ((digitToInt . head . tail . tail) s)
-    if (digitToInt . head) s /= 4
-      then gameLoop (k+1) (filter (test g a) set)
+    if (digitToInt . head) s /= l
+      then gameLoop (k+1) l (filter (test g a) gs) as
       else hPutStr stdout ""
 
 main :: IO ()
 main =
   do
+    args <- getArgs
     hSetBuffering stdin LineBuffering
-    gameLoop 0 combos
+    gameLoop 0 (read (args !! 0) :: Int) (guesses (read (args !! 0) :: Int) (read (args !! 1) :: Int) ((read (args !! 2) :: Int) == 1)) (answers (read (args !! 0) :: Int))
 
