@@ -4,15 +4,19 @@ import System.Random
 import Data.Char
 import System.IO
 
+-- define the Guess data type (this should of a generic lenght, probably using lists)
 data Guess = Guess Int Int Int Int | Empty
+-- the Guess data type is showable
 instance Show Guess where
   show (Guess w x y z) = (show w)++","++(show x)++","++(show y)++","++(show z)
   show Empty = "error"
+-- the Guess data type is comparable
 instance Eq Guess where
   (Guess x1 x2 x3 x4) == (Guess y1 y2 y3 y4) = (x1,x2,x3,x4) == (y1,y2,y3,y4)
   Empty == Empty = True
   _ == _ = False
 
+-- define the Answer data type, which is again showable and comparable
 data Answer = Answer Int Int
 instance Show Answer where
   show (Answer s b) = show (s, b)
@@ -23,6 +27,8 @@ list :: Guess -> [Int]
 list (Guess w x y z) = w:x:y:z:[]
 list Empty = []
 
+-- the list of possible guesses is made of objects of Guess type containing
+-- no repetitions (this also must be made generic)
 combos :: [Guess]
 combos = [Guess w x y z | w <- [0..9], x <- [0..9], y <- [0..9], z <- [0..9],
   w /= x, w /= y, w /= z, x /= y, x /= z, y /= z]
@@ -31,35 +37,45 @@ booltoint :: Bool -> Int
 booltoint True = 1
 booltoint _ = 0
 
+-- the list of possible replies
 answers :: [Answer]
 answers = [Answer 0 1, Answer 0 2, Answer 1 1, Answer 1 0, Answer 0 0, Answer 2 0, Answer 0 3, Answer 1 2,
   Answer 2 1, Answer 3 0, Answer 0 4, Answer 1 3, Answer 2 2]
 
+-- computes the index of the first occurence of the first argument in the list
+-- provided as second argument
 idx :: Eq a => a -> [a] -> Int
 idx y (x:xs)
   | x == y = 0
   | x /= y = 1 + (idx y xs)
 idx _ [] = 0
 
+-- counts on how many positions two lists contain the same integer
 cslist :: [Int] -> [Int] -> Int
 cslist (x:xs) (y:ys)
   | x == y = 1 + (cslist xs ys)
   | x /= y = (cslist xs ys)
 cslist [] [] = 0
 
+-- self explanatory
 countsquares :: Guess -> Guess -> Int
 countsquares x y = cslist (list x) (list y)
 
+-- counts how many elements in each of the two lists appear also in the other
+-- (but in a different position)
 cblist :: [Int] -> [Int] -> Int
 cblist (x:xs) (y:ys) = (booltoint (elem x ys)) + (booltoint (elem y xs)) + (cblist xs ys) 
 cblist [] [] = 0
 
+-- self explanatory
 countballs :: Guess -> Guess -> Int
 countballs x y = cblist (list x) (list y)
 
+-- self explanatory
 feedback :: Guess -> Guess -> Answer
 feedback t g = Answer (countsquares t g) (countballs t g)
 
+-- self explanatory
 test :: Guess -> Answer -> Guess -> Bool
 test g a t = (feedback g t) == a && g /= t
 
