@@ -16,12 +16,12 @@ This will compile the solver and produce an executable file named `bullscows`. T
 simply launch it and it will start printing guesses to the screen, to which the user should reply with
 (consistent) feedbacks of the form
 ```
-b,c
+b c
 ```
 where `b` is the number of right digits in the right position (bulls), and `c` is the number of right digits
-in wrong positions (cows). The game ends either when the `4,0` feedback is given by the user, or when inconsistent
+in wrong positions (cows). The game ends either when the `4 0` feedback is given by the user, or when inconsistent
 feedbacks are detected, in which case the solver prints `error` and terminates. An example of (succesful) user-solver
-interaction is the following (here the sequence to guess is `1,2,3,4`):
+interaction is the following (here the sequence to guess is `1 2 3 4`):
 ```
 user@host$ ./bullscows 
 9 4 8 0
