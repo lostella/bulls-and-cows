@@ -24,18 +24,18 @@ feedbacks are detected, in which case the solver prints `error` and terminates. 
 interaction is the following (here the sequence to guess is `1,2,3,4`):
 ```
 user@host$ ./bullscows 
-9,4,8,0
-0,1
-0,1,2,3
-0,3
-1,0,5,2
-1,1
-3,0,1,6
-0,2
-1,2,3,4
-4,0
+9 4 8 0
+0 1
+0 1 2 3
+0 3
+1 0 5 2
+1 1
+3 0 1 6
+0 2
+1 2 3 4
+4 0
 ```
-
+<!--
 ## Game statistics
 To perform multiple games with the solver, and obtain statistics on its performance, you can use the Python script
 contained in the repo. Make sure you have
@@ -48,8 +48,7 @@ user@host$ ./analyze.py ./bullscows 30
 avg: 5.067,
 max: 6.
 ```
-
+-->
 ## To be continued
-The code is very simple and was more of an exercise than a serious project. Many things need to be done. The major
-feature I would like to implement is to make it general with respect to the parameters defining the sequence to be
-guessed, such as its length, the digits that it contains, and whether or not repetitions are allowed.
+The code is very simple and was more of an exercise than a serious project. Many things need to be done, mainly
+on the performance side. Stay tuned for updates.
