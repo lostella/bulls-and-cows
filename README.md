@@ -7,7 +7,8 @@ when I was desperately looking for something useful that made it worth to learn 
 overall speaking quite difficult functional programming language. [Haskell](https://www.haskell.org/) rocks.
 
 ## How to use it
-Make sure you have the [Glasgow Haskell Compiler](https://www.haskell.org/ghc/) installed on your computer.
+Make sure you have the [Glasgow Haskell Compiler](https://www.haskell.org/ghc/) installed on your computer
+(check [here](https://www.haskell.org/ghc/distribution_packages) for OS-specific packages).
 Then simply launch a terminal, navigate to the repository and hit
 ```
 user@host$ make
