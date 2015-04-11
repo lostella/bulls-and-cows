@@ -9,7 +9,7 @@ import Data.Char
 data Guess = Guess [Int] | Empty
 -- the Guess data type is showable
 instance Show Guess where
-  show (Guess (x:xs)) = (show x)++","++(show (Guess xs))
+  show (Guess (x:xs)) = (show x)++" "++(show (Guess xs))
   show (Guess []) = ""
   show Empty = "error"
 -- the Guess data type is comparable
@@ -61,35 +61,25 @@ rmlist x (y:ys)
   | x /= y = (y:(rmlist x ys))
 rmlist x [] = []
 
--- counts on how many positions two lists contain the same integer
-cslist :: [Int] -> [Int] -> Int
-cslist (x:xs) (y:ys)
-  | x == y = 1 + (cslist xs ys)
-  | x /= y = (cslist xs ys)
-cslist [] [] = 0
+cslist :: [Int] -> [Int] -> [Int] -> [Int] -> (Int, [Int], [Int])
+cslist (x:xs) (y:ys) rx ry
+  | x == y = let (reccs, recrx, recry) = (cslist xs ys rx ry)
+    in (1 + reccs, recrx, recry)
+  | otherwise = let (reccs, recrx, recry) = (cslist xs ys (x:rx) (y:ry))
+    in (reccs, recrx, recry)
+cslist [] [] rx ry = (0, rx, ry)
 
--- self explanatory
-countsquares :: Guess -> Guess -> Int
-countsquares (Guess xs) (Guess ys) = cslist xs ys
-
--- counts how many elements in each of the two lists appear also in the other
--- (but in a different position)
-cblist :: [Int] -> [Int] -> [Int] -> [Int] -> Int
-cblist (x:xs) (y:ys) rxs rys
-  | x == y = cblist xs ys rxs rys
-  | x /= y && (elem x rys) && (elem y rxs) = 2 + (cblist xs ys (rmlist y rxs) (rmlist x rys))
-  | x /= y && (elem y rxs) = 1 + (cblist xs ys (x:(rmlist y rxs)) rys)
-  | x /= y && (elem x rys) = 1 + (cblist xs ys rxs (y:(rmlist x rys)))
-  | x /= y = (cblist xs ys (x:rxs) (y:rys))
-cblist [] [] _ _ = 0
-
--- self explanatory
-countballs :: Guess -> Guess -> Int
-countballs (Guess xs) (Guess ys) = cblist xs ys [] []
+cblist :: [Int] -> [Int] -> Int
+cblist (x:xs) ys
+  | (elem x ys) == True = 1 + (cblist xs (rmlist x ys))
+  | otherwise = cblist xs ys
+cblist [] _ = 0
 
 -- self explanatory
 feedback :: Guess -> Guess -> Answer
-feedback t g = Answer (countsquares t g) (countballs t g)
+feedback (Guess x) (Guess y) = Answer s b
+  where (s, rx, ry) = cslist x y [] []
+        b = cblist rx ry
 
 -- self explanatory
 test :: Guess -> Answer -> Guess -> Bool
@@ -130,8 +120,11 @@ gameLoop k l gs as =
     hPrint stdout g
     hFlush stdout
     s <- hGetLine stdin
-    let a = Answer ((digitToInt . head) s) ((digitToInt . head . tail . tail) s)
-    if (digitToInt . head) s /= l
+    let bcs = words s
+        b = read (head bcs) :: Int
+        c = read ((head . tail) bcs) :: Int
+        a = Answer b c
+    if b /= l
       then gameLoop (k+1) l (filter (test g a) gs) as
       else hPutStr stdout ""
 
@@ -140,5 +133,8 @@ main =
   do
     args <- getArgs
     hSetBuffering stdin LineBuffering
-    gameLoop 0 (read (args !! 0) :: Int) (guesses (read (args !! 0) :: Int) (read (args !! 1) :: Int) ((read (args !! 2) :: Int) == 1)) (answers (read (args !! 0) :: Int))
+    let l = read (args !! 0) :: Int
+        d = read (args !! 1) :: Int
+        r = read (args !! 2) :: Int
+    gameLoop 0 l (guesses l d (r == 1)) (answers l)
 
