@@ -1,89 +1,126 @@
+-- *****************************************************************************
+--
+-- bullscows.hs - Interactive bulls-and-cows (a.k.a. balls-and-squares) solver
+--
+-- Compile: ghc -O3 bullscows.hs (assuming GHC is used)
+--
+-- Usage: ./bullscows l d r
+--
+--  Where   l is the lenght of the sequence to guess
+--          d is the number of symbols with which the sequence is composed
+--          r is zero if repetitions are not allowed, nonzero otherwise
+--  
+--  The program will start making guesses, to which the user should reply with
+--  feedback strings of the form "b c\n" where b is the number of right symbols
+--  in the right position, and c is the number of right symbols in the wrong
+--  position. Note that a whitespace is between b and c in the feedback string.
+--
+--  The game ends when the feedback string "l 0\n" is given by the user (in
+--  which case the program has found the right sequence) or an inconsistency
+--  among user feedbacks is detected.
+--
+--  When the game is over the program terminates.
+--
+-- *****************************************************************************
+
 module Main where
 
 import System.Random
 import System.IO
 import System.Environment
 import Data.Char
+import Data.List
 
--- define the Guess data type
+-- Define the Guess data type
 data Guess = Guess [Int] | Empty
--- the Guess data type is showable
+
+-- The Guess data type is showable
 instance Show Guess where
-  show (Guess (x:xs)) = (show x)++" "++(show (Guess xs))
+  show (Guess (x:xs)) = (show x) ++ " " ++ (show (Guess xs))
   show (Guess []) = ""
   show Empty = "error"
--- the Guess data type is comparable
+  
+-- The Guess data type is comparable
 instance Eq Guess where
   (Guess (x:xs)) == (Guess (y:ys)) = (x == y) && ((Guess xs) == (Guess ys))
   (Guess []) == (Guess []) = True
   Empty == Empty = True
   _ == _ = False
 
--- define the Answer data type, which is again showable and comparable
+-- Define the Answer data type, which is again showable and comparable
 data Answer = Answer Int Int
 instance Show Answer where
   show (Answer s b) = show (s, b)
 instance Eq Answer where
   (Answer s1 b1) == (Answer s2 b2) = s1 == s2 && b1 == b2
+  
+--------------------------------------------------------------------------------
+-- GENERATING ALL POSSIBLE SEQUENCES FOR THE GAME ------------------------------
+--------------------------------------------------------------------------------
 
-combosnorep :: Int -> Int -> [Int] -> [[Int]]
-combosnorep 0 _ _ = [[]]
-combosnorep l d rs = [(x:xs) | x <- [0..(d-1)], (elem x rs) == False, xs <- (combosnorep (l-1) d (x:rs))]
+-- Generates combinations of symbols without repetitions
+combosNoRep :: Int      -- ^ the length of the combinations to be generated
+            -> Int      -- ^ the number of available symbols
+            -> [Int]    -- ^ list of already used symbols
+            -> [[Int]]  -- ^ resulting list of combinations
+combosNoRep 0 _ _ = [[]]
+combosNoRep l d rs = [(x:xs) | x <- [0..(d-1)], (elem x rs) == False, xs <- (combosNoRep (l-1) d (x:rs))]
 
-combos :: Int -> Int -> Bool -> [[Int]]
+-- Generates combinations of symbols
+combos :: Int       -- ^ the length of the combinations to be generated
+       -> Int       -- ^ the number of available symbols
+       -> Bool      -- ^ whether to allow repetitions (True) or not (False)
+       -> [[Int]]   -- ^ resulting list of combinations
 combos 0 _ True = [[]]
 combos l d True = [(x:xs) | x <- [0..(d-1)], xs <- (combos (l-1) d True)]
-combos l d False = combosnorep l d []
+combos l d False = combosNoRep l d []
 
-guesses :: Int -> Int -> Bool -> [Guess]
+-- Generates guesses using combos
+guesses :: Int       -- ^ the length of the guesses to be generated
+        -> Int       -- ^ the number of available symbols
+        -> Bool      -- ^ whether to allow repetitions (True) or not (False)
+        -> [Guess]   -- ^ resulting list of guesses
 guesses l d r = [Guess x | x <- (combos l d r)]
 
-booltoint :: Bool -> Int
-booltoint True = 1
-booltoint _ = 0
+--------------------------------------------------------------------------------
+-- GENERATING ALL POSSIBLE REPLIES TO GUESSES ----------------------------------
+--------------------------------------------------------------------------------
 
--- the list of possible replies
-answers :: Int -> [Answer]
+-- Generates the list of possible answers
+answers :: Int      -- ^ length of the combination to guess
+        -> [Answer] -- ^ resulting list of answers
 answers l = [Answer b c | b <- [0..l], c <- [0..l], b+c <= l]
 
--- computes the index of the first occurence of the first argument in the list
--- provided as second argument
-idx :: Eq a => a -> [a] -> Int
-idx y (x:xs)
-  | x == y = 0
-  | x /= y = 1 + (idx y xs)
-idx _ [] = 0
-
--- removes the first instance of an element from a list (if there is one)
-rmlist :: Eq a => a -> [a] -> [a]
-rmlist x (y:ys)
-  | x == y = ys
-  | x /= y = (y:(rmlist x ys))
-rmlist x [] = []
-
-cslist :: [Int] -> [Int] -> [Int] -> [Int] -> (Int, [Int], [Int])
-cslist (x:xs) (y:ys) rx ry
-  | x == y = let (reccs, recrx, recry) = (cslist xs ys rx ry)
+countSquaresList :: [Int] -> [Int] -> [Int] -> [Int] -> (Int, [Int], [Int])
+countSquaresList (x:xs) (y:ys) rx ry
+  | x == y = let (reccs, recrx, recry) = (countSquaresList xs ys rx ry)
     in (1 + reccs, recrx, recry)
-  | otherwise = let (reccs, recrx, recry) = (cslist xs ys (x:rx) (y:ry))
+  | otherwise = let (reccs, recrx, recry) = (countSquaresList xs ys (x:rx) (y:ry))
     in (reccs, recrx, recry)
-cslist [] [] rx ry = (0, rx, ry)
+countSquaresList [] [] rx ry = (0, rx, ry)
 
-cblist :: [Int] -> [Int] -> Int
-cblist (x:xs) ys
-  | (elem x ys) == True = 1 + (cblist xs (rmlist x ys))
-  | otherwise = cblist xs ys
-cblist [] _ = 0
+countBallsList :: [Int] -> [Int] -> Int
+countBallsList (x:xs) ys
+  | (elem x ys) == True = 1 + (countBallsList xs (delete x ys))
+  | otherwise = countBallsList xs ys
+countBallsList [] _ = 0
 
 -- self explanatory
 feedback :: Guess -> Guess -> Answer
 feedback (Guess x) (Guess y) = Answer s b
-  where (s, rx, ry) = cslist x y [] []
-        b = cblist rx ry
+  where (s, rx, ry) = countSquaresList x y [] []
+        b = countBallsList rx ry
 
 -- self explanatory
 test :: Guess -> Answer -> Guess -> Bool
 test g a t = (feedback g t) == a && g /= t
+
+-- self explanatory, maybe better than length (filter p xs), should verify this
+count :: (a -> Bool) -> [a] -> Int
+count p [] = 0
+count p (x:xs)
+  | (p x) == True = 1 + (count p xs)
+  | otherwise = (count p xs)
 
 minmax :: [Guess] -> [Answer] -> Guess
 minmax gs as = mini gs gs as (length gs) Empty
@@ -99,9 +136,9 @@ mini _ [] _ _ mg = mg
 maxi :: [Guess] -> Guess -> [Answer] -> Int -> Int
 maxi gs g (a:as) t =
   if len >= t
-    then t
+    then t -- here we prune the search
     else max len (maxi gs g as t)
-  where len = length (filter (test g a) gs)
+  where len = (count (test g a) gs)
 maxi _ _ [] _ = 0
 
 choose :: Int -> [Guess] -> [Answer] -> IO Guess
@@ -136,5 +173,5 @@ main =
     let l = read (args !! 0) :: Int
         d = read (args !! 1) :: Int
         r = read (args !! 2) :: Int
-    gameLoop 0 l (guesses l d (r == 1)) (answers l)
+    gameLoop 0 l (guesses l d (r /= 0)) (answers l)
 
