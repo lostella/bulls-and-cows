@@ -25,34 +25,24 @@
 
 module Main where
 
+import Control.Monad
+import Data.Char
+import Data.List
 import System.Random
 import System.IO
 import System.Environment
-import Data.Char
-import Data.List
 
--- Define the Guess data type
-data Guess = Guess [Int] | Empty
+-- Define the Guess data type (comparable)
+data Guess = Guess [Int] | Empty deriving (Eq)
 
--- The Guess data type is showable
+-- The Guess data type is also showable
 instance Show Guess where
   show (Guess (x:xs)) = (show x) ++ " " ++ (show (Guess xs))
   show (Guess []) = ""
   show Empty = "error"
   
--- The Guess data type is comparable
-instance Eq Guess where
-  (Guess (x:xs)) == (Guess (y:ys)) = (x == y) && ((Guess xs) == (Guess ys))
-  (Guess []) == (Guess []) = True
-  Empty == Empty = True
-  _ == _ = False
-
--- Define the Answer data type, which is again showable and comparable
-data Answer = Answer Int Int
-instance Show Answer where
-  show (Answer s b) = show (s, b)
-instance Eq Answer where
-  (Answer s1 b1) == (Answer s2 b2) = s1 == s2 && b1 == b2
+-- Define the Answer data type (comparable)
+data Answer = Answer Int Int deriving (Eq)
   
 --------------------------------------------------------------------------------
 -- GENERATING ALL POSSIBLE SEQUENCES FOR THE GAME ------------------------------
@@ -64,7 +54,10 @@ combosNoRep :: Int      -- ^ the length of the combinations to be generated
             -> [Int]    -- ^ list of already used symbols
             -> [[Int]]  -- ^ resulting list of combinations
 combosNoRep 0 _ _ = [[]]
-combosNoRep l d rs = [(x:xs) | x <- [0..(d-1)], (elem x rs) == False, xs <- (combosNoRep (l-1) d (x:rs))]
+combosNoRep l d rs = [(x:xs) |
+  x <- [0..(d-1)],
+  (elem x rs) == False,
+  xs <- (combosNoRep (l-1) d (x:rs))]
 
 -- Generates combinations of symbols
 combos :: Int       -- ^ the length of the combinations to be generated
@@ -72,7 +65,9 @@ combos :: Int       -- ^ the length of the combinations to be generated
        -> Bool      -- ^ whether to allow repetitions (True) or not (False)
        -> [[Int]]   -- ^ resulting list of combinations
 combos 0 _ True = [[]]
-combos l d True = [(x:xs) | x <- [0..(d-1)], xs <- (combos (l-1) d True)]
+combos l d True = [(x:xs) |
+  x <- [0..(d-1)],
+  xs <- (combos (l-1) d True)]
 combos l d False = combosNoRep l d []
 
 -- Generates guesses using combos
@@ -93,9 +88,11 @@ answers l = [Answer b c | b <- [0..l], c <- [0..l], b+c <= l]
 
 countSquaresList :: [Int] -> [Int] -> [Int] -> [Int] -> (Int, [Int], [Int])
 countSquaresList (x:xs) (y:ys) rx ry
-  | x == y = let (reccs, recrx, recry) = (countSquaresList xs ys rx ry)
+  | x == y =
+    let (reccs, recrx, recry) = (countSquaresList xs ys rx ry)
     in (1 + reccs, recrx, recry)
-  | otherwise = let (reccs, recrx, recry) = (countSquaresList xs ys (x:rx) (y:ry))
+  | otherwise =
+    let (reccs, recrx, recry) = (countSquaresList xs ys (x:rx) (y:ry))
     in (reccs, recrx, recry)
 countSquaresList [] [] rx ry = (0, rx, ry)
 
@@ -155,15 +152,19 @@ gameLoop k l gs as =
   do
     g <- choose k gs as
     hPrint stdout g
-    hFlush stdout
-    s <- hGetLine stdin
-    let bcs = words s
-        b = read (head bcs) :: Int
-        c = read ((head . tail) bcs) :: Int
-        a = Answer b c
-    if b /= l
-      then gameLoop (k+1) l (filter (test g a) gs) as
-      else hPutStr stdout ""
+    if g == Empty
+      then return ()
+      else
+        do
+          hFlush stdout
+          s <- hGetLine stdin
+          let bcs = words s
+              b = read (bcs !! 0) :: Int
+              c = read (bcs !! 1) :: Int
+              a = Answer b c
+          if b /= l
+            then gameLoop (k+1) l (filter (test g a) gs) as
+            else hPutStr stdout ""
 
 main :: IO ()
 main =
