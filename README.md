@@ -2,9 +2,14 @@
 This repository contains a Haskell implementation of a Mastermind (also known as "bulls and cows") player.
 More information on the game [here](http://en.wikipedia.org/wiki/Bulls_and_cows).
 
-The choice of Haskell as programming language is merely for didactical reasons, as I started writing this code
+The choice of Haskell as programming language is for educational purposes, as I started writing this code
 when I was desperately looking for something useful that made it worth to learn such an elegant, efficient but
 overall speaking quite difficult functional programming language. [Haskell](https://www.haskell.org/) rocks.
+
+On functional programming: [Structure and Interpretation of Computer Programs](https://mitpress.mit.edu/sicp/)
+
+On Haskell: [Learn You a Haskell for a Great Good!](http://learnyouahaskell.com/)
+
 
 ## How to use it
 Make sure you have the [Glasgow Haskell Compiler](https://www.haskell.org/ghc/) installed on your computer
@@ -36,20 +41,7 @@ user@host$ ./bullscows
 1 2 3 4
 4 0
 ```
-<!--
-## Game statistics
-To perform multiple games with the solver, and obtain statistics on its performance, you can use the Python script
-contained in the repo. Make sure you have
-[Python](https://www.python.org/) installed on your system. Then simply launch `analyze.py` providing as arguments
-the path to the executable of the solver, and the number of games to be played. The script will print out how many
-guesses the solver took to get the right answer. For example:
-```
-user@host$ ./analyze.py ./bullscows 30
-3: 6.7%, 4: 16.7%, 5: 40.0%, 6: 36.7%, 
-avg: 5.067,
-max: 6.
-```
--->
+
 ## To be continued
 The code is very simple and was more of an exercise than a serious project. Many things need to be done, mainly
-on the performance side. Stay tuned for updates.
+on the coding style and performance sides. Stay tuned for updates.
