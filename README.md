@@ -19,17 +19,23 @@ Then simply launch a terminal, navigate to the repository and hit
 user@host$ make
 ```
 This will compile the solver and produce an executable file named `bullscows`. To test it interactively,
-simply launch it and it will start printing guesses to the screen, to which the user should reply with
+simply launch it with three arguments, as follows:
+```
+user@host$ ./bullscows <l> <d> <r>
+```
+Here `<l>` is the length of the sequence to guess, `<d>` is the number of digits to be used, `<r>` is 0 or 1
+according to whether repetitions are allowed in the sequence.
+The program will start printing guesses to the screen, to which the user should reply with
 (consistent) feedbacks of the form
 ```
-b c
+<b> <c>
 ```
-where `b` is the number of right digits in the right position (bulls), and `c` is the number of right digits
+where `<b>` is the number of right digits in the right position (bulls), and `<c>` is the number of right digits
 in wrong positions (cows). The game ends either when the `4 0` feedback is given by the user, or when inconsistent
 feedbacks are detected, in which case the solver prints `error` and terminates. An example of user-solver
 interaction is the following (the sequence to guess is `1 2 3 4`):
 ```
-user@host$ ./bullscows 
+user@host$ ./bullscows 4 10 0
 9 4 8 0
 0 1
 0 1 2 3
